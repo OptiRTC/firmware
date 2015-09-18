@@ -2,7 +2,7 @@
 /**
  * The load address of the part2 module image
  */
-system_part2_start = 0x8060000;
+system_part2_start = 0x8040000;
 
 /**
  * A fake VTOR table so that the bootloader can jump to this module and set up the stack,
