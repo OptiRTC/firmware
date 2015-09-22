@@ -1,16 +1,18 @@
 
 HAL_SRC_TEMPLATE_PATH = $(TARGET_HAL_PATH)/src/template
 HAL_SRC_STM32F2XX_PATH = $(TARGET_HAL_PATH)/src/stm32f2xx
+HAL_SRC_STM32_PATH = $(TARGET_HAL_PATH)/src/stm32
 HAL_SRC_ELECTRON_PATH = $(TARGET_HAL_PATH)/src/electron
 
 templatedir=$(HAL_SRC_TEMPLATE_PATH)
 overridedir=$(HAL_SRC_ELECTRON_PATH)
 
 INCLUDE_DIRS += $(HAL_SRC_STM32F2XX_PATH)
+INCLUDE_DIRS += $(HAL_SRC_STM32_PATH)
 INCLUDE_DIRS += $(HAL_SRC_ELECTRON_PATH)
 
 # C source files included in this build.
-# Use files from the template unless they are overridden by files in the 
+# Use files from the template unless they are overridden by files in the
 # electron folder. Also manually exclude some files that have changed from c->cpp.
 
 CSRC += $(call target_files,$(templatedir)/,*.c)
@@ -35,6 +37,10 @@ CPPSRC += $(call target_files,$(overridedir)/,*.cpp)
 
 CSRC += $(call target_files,$(HAL_SRC_STM32F2XX_PATH)/,*.c)
 CPPSRC += $(call target_files,$(HAL_SRC_STM32F2XX_PATH)/,*.cpp)
+
+CSRC += $(call target_files,$(HAL_SRC_STM32_PATH)/,*.c)
+CPPSRC += $(call target_files,$(HAL_SRC_STM32_PATH)/,*.cpp)
+
 
 # ASM source files included in this build.
 ASRC +=
