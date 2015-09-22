@@ -71,8 +71,8 @@ VPATH = \
 	../.. \
 	$(QPC)/source \
 	$(QP_PORT_DIR) \
-	$(QPC)/3rd_party/nucleo-l152re \
-	$(QPC)/3rd_party/nucleo-l152re/gnu
+	$(QPC)/3rd_party/stm32f2 \
+	$(QPC)/3rd_party/stm32f2/gcc
 
 # list of all include directories needed by this project
 INCLUDES  = \
@@ -81,7 +81,7 @@ INCLUDES  = \
 	-I$(QPC)/source \
 	-I$(QP_PORT_DIR) \
 	-I$(QPC)/3rd_party/CMSIS/Include \
-	-I$(QPC)/3rd_party/nucleo-l152re
+	-I$(QPC)/3rd_party/stm32f2
 
 #-----------------------------------------------------------------------------
 # files
@@ -96,8 +96,8 @@ C_SRCS := \
 	main.c \
 	philo.c \
 	table.c \
-	system_stm32l1xx.c \
-	startup_stm32l1xx.c
+	system_stm32f2xx.c \
+	startup_stm32f2xx.c
 
 # C++ source files
 CPP_SRCS :=	
@@ -142,7 +142,7 @@ FLOAT_ABI :=
 # see http://gnutoolchains.com/arm-eabi/
 #
 ifeq ($(GNU_ARM),)
-GNU_ARM = C:/tools/gnu_arm-eabi
+GNU_ARM = /usr
 endif
 
 # make sure that the GNU-ARM toolset exists...
@@ -150,11 +150,11 @@ ifeq ("$(wildcard $(GNU_ARM))","")
 $(error GNU_ARM toolset not found. Please adjust the Makefile)
 endif
 
-CC    := $(GNU_ARM)/bin/arm-eabi-gcc
-CPP   := $(GNU_ARM)/bin/arm-eabi-g++
-AS    := $(GNU_ARM)/bin/arm-eabi-as
-LINK  := $(GNU_ARM)/bin/arm-eabi-gcc
-BIN   := $(GNU_ARM)/bin/arm-eabi-objcopy
+CC    := $(GNU_ARM)/bin/arm-none-eabi-gcc
+CPP   := $(GNU_ARM)/bin/arm-none-eabi-g++
+AS    := $(GNU_ARM)/bin/arm-none-eabi-as
+LINK  := $(GNU_ARM)/bin/arm-none-eabi-gcc
+BIN   := $(GNU_ARM)/bin/arm-none-eabi-objcopy
 
 ##############################################################################
 # Typically, you should not need to change anything below this line
