@@ -2,7 +2,7 @@
 
 MEMORY
 {
-    APP_FLASH                  (rx)  : ORIGIN = 0x080A0000,     LENGTH = 128K
+    APP_FLASH                  (rx)  : ORIGIN = 0x08080000,     LENGTH = 128K
 
      /* The SRAM Origin is system_part1_module_ram_end, and extends to
         system_static_ram_start */
