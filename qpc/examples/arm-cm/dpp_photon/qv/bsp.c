@@ -35,7 +35,7 @@
 #include "dpp.h"
 #include "bsp.h"
 
-#include "stm32l1xx.h"  /* CMSIS-compliant header file for the MCU used */
+#include "stm32f2xx.h"  /* CMSIS-compliant header file for the MCU used */
 /* add other drivers if necessary... */
 
 Q_DEFINE_THIS_FILE
@@ -56,11 +56,11 @@ Q_ASSERT_COMPILE(MAX_KERNEL_AWARE_CMSIS_PRI <= (0xFF >>(8-__NVIC_PRIO_BITS)));
 void SysTick_Handler(void);
 
 /* Local-scope defines -----------------------------------------------------*/
-/* LED pins available on the board (just one user LED LD2--Green on PA.5) */
-#define LED_LD2  (1U << 5)
+/* LED pins available on the board (just one user LED LD2--Green on PA.13) */
+#define LED_LD2  (1U << 13)
 
-/* Button pins available on the board (just one user Button B1 on PC.13) */
-#define BTN_B1   (1U << 13)
+/* Button pins available on the board (just one user Button B1 on PC.5) */
+#define BTN_B1   (1U << 5)
 
 
 static uint32_t l_rnd;  /* random seed */
@@ -128,24 +128,24 @@ void BSP_init(void) {
     SystemCoreClockUpdate();
 
     /* enable GPIOA clock port for the LED LD2 */
-    RCC->AHBENR |= (1U << 0);
+    RCC->AHB1ENR |= (1U << 0);
 
     /* configure LED (PA.5) pin as push-pull output, no pull-up, pull-down */
-    GPIOA->MODER   &= ~((3U << 2*5));
-    GPIOA->MODER   |=  ((1U << 2*5));
-    GPIOA->OTYPER  &= ~((1U <<   5));
-    GPIOA->OSPEEDR &= ~((3U << 2*5));
-    GPIOA->OSPEEDR |=  ((1U << 2*5));
-    GPIOA->PUPDR   &= ~((3U << 2*5));
+    GPIOA->MODER   &= ~((3U << 2*13));
+    GPIOA->MODER   |=  ((1U << 2*13));
+    GPIOA->OTYPER  &= ~((1U <<   13));
+    GPIOA->OSPEEDR &= ~((3U << 2*13));
+    GPIOA->OSPEEDR |=  ((1U << 2*13));
+    GPIOA->PUPDR   &= ~((3U << 2*13));
 
     /* enable GPIOC clock port for the Button B1 */
-    RCC->AHBENR |=  (1U << 2);
+    RCC->AHB1ENR |=  (1U << 2);
 
     /* configure Button (PC.13) pins as input, no pull-up, pull-down */
-    GPIOC->MODER   &= ~(3U << 2*13);
-    GPIOC->OSPEEDR &= ~(3U << 2*13);
-    GPIOC->OSPEEDR |=  (1U << 2*13);
-    GPIOC->PUPDR   &= ~(3U << 2*13);
+    GPIOC->MODER   &= ~(3U << 2*5);
+    GPIOC->OSPEEDR &= ~(3U << 2*5);
+    GPIOC->OSPEEDR |=  (1U << 2*5);
+    GPIOC->PUPDR   &= ~(3U << 2*5);
 
     BSP_randomSeed(1234U); /* seed the random number generator */
 
@@ -280,7 +280,7 @@ uint8_t QS_onStartup(void const *arg) {
     QS_initBuf(qsBuf, sizeof(qsBuf));
 
     /* enable peripheral clock for USART2 */
-    RCC->AHBENR   |=  (1U <<  0);   /* Enable GPIOA clock   */
+    RCC->AHB1ENR   |=  (1U <<  0);   /* Enable GPIOA clock   */
     RCC->APB1ENR  |=  (1U << 17);   /* Enable USART#2 clock */
 
     /* Configure PA3 to USART2_RX, PA2 to USART2_TX */
