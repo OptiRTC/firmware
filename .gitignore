@@ -15,6 +15,9 @@
 *.out
 *.app
 
+# build/target folder
+build/target
+
 # Debug folder
 Debug/*
 
