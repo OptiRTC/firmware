@@ -88,7 +88,7 @@ INCLUDES  = \
 #
 
 # assembler source files
-ASM_SRCS :=
+ASM_SRCS := 
 
 # C source files
 C_SRCS := \

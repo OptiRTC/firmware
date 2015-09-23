@@ -57,12 +57,31 @@
 /** @addtogroup stm32f2xx_system
   * @{
   */  
+
+// #hackyfasho
+#include "stm32f2xx.h"
   
 /** @addtogroup STM32F2xx_System_Private_Includes
   * @{
   */
 
-#include "stm32f2xx_hal.h"
+// hacky oscillator values, probably not right
+
+#if !defined  (HSE_VALUE)
+  #define HSE_VALUE    ((uint32_t)8000000) /*!< Value of the External oscillator in Hz */
+#endif /* HSE_VALUE */
+
+#if !defined  (MSI_VALUE)
+  #define MSI_VALUE    ((uint32_t)2000000) /*!< Value of the Internal oscillator in Hz*/
+#endif /* MSI_VALUE */
+
+#if !defined  (HSI_VALUE)
+  #define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
+#endif /* HSI_VALUE */
+
+// commented out HAL include, also hacky
+//#include "stm32f2xx_hal.h"
+
 
 /**
   * @}
