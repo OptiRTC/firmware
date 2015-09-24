@@ -24,11 +24,13 @@ Debug/*
 # Release folder
 Release/*
 
-# build folder
+# build products
 *.map
 *.lst
 *.d
 *.o
+*.bin
+*.elf
 
 # Platform-specific settings
 .settings/*

@@ -1,207 +1,364 @@
-//***************************************************************************
-// startup.c - Boot code for STM32F10x Arm Cortex-M3 microcontrollers
-// Copyright (c) 2007-2008 Bilkon Bilgisayar Kontrollu Cihazlar Ltd.Sti
-// Ahmet Cihan AKINCA
-//***************************************************************************
-#include <stddef.h>
+/* File: startup_stm32l1xx.c for GNU-ARM
+ * Purpose: startup file for STM32L1xx Cortex-M3 device.
+ *          Should be used with GCC 'GNU Tools ARM Embedded'
+ * Version: CMSIS v4.2.0
+ * Date: 27 March 2015
+ *
+ * Created from the CMSIS template for the specified device
+ * Quantum Leaps, www.state-machine.com
+ *
+ * NOTE: The function assert_failed defined at the end of this file
+ * determines the error/assertion handling policy for the application and
+ * might need to be customized for each project. This function is defined
+ * using the GNU-ARM language extensions to avoid accessing the stack,
+ * which might be corrupted by the time assert_failed is called.
+ */
+/* Copyright (c) 2011 - 2014 ARM LIMITED
 
-//***************************************************************************
-// Forward declaration of the default fault handlers.
-//***************************************************************************
-static void ResetISR( void );
-static void NmISR( void );
-static void FaultISR( void );
-static void IntDefaultHandler( void );
+   All rights reserved.
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+   - Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+   - Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+   - Neither the name of ARM nor the names of its contributors may be used
+     to endorse or promote products derived from this software without
+     specific prior written permission.
+   *
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+   ARE DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDERS AND CONTRIBUTORS BE
+   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+   POSSIBILITY OF SUCH DAMAGE.
+ ---------------------------------------------------------------------------*/
 
-//***************************************************************************
-// The entry point for the application.
-//***************************************************************************
-extern int main( void );
-extern void SysTick_Handler(void);
+/* start and end of stack defined in the linker script ---------------------*/
+extern int __stack_start__;
+extern int __stack_end__;
 
-//***************************************************************************
-// Reserve space for the system stack.
-//***************************************************************************
-#ifndef STACK_SIZE
-#define STACK_SIZE                              (( size_t )128 )
-#endif
+/* Weak prototypes for error handlers --------------------------------------*/
+/**
+* \note
+* The functions assert_failed/Q_onAssert defined at the end of this file
+* determine the error/assertion handling policy for the application and
+* might need to be customized for each project. These functions are defined
+* as "naked" to avoid accessing the stack, which might be corrupted by
+* the time assert_failed/Q_onAssert are called.
+*/
+__attribute__ ((naked)) void assert_failed(char const *file, int line);
+__attribute__ ((alias("assert_failed")))
+void Q_onAssert(char const *file, int line);
 
-__attribute__ ((section(".stack"))) unsigned long pulStack[STACK_SIZE];
+/* Function prototypes -----------------------------------------------------*/
+void Default_Handler(void);  /* Default empty handler */
+void Reset_Handler(void);    /* Reset Handler */
+void SystemInit(void);       /* CMSIS system initialization */
 
-//***************************************************************************
-// The minimal vector table for STM32F103x Cortex-M3.
-//***************************************************************************
-__attribute__ ((section(".vector_table"))) void (* const stmVectors[])(void) = {
-    ( void (*)( void ))(( unsigned int )pulStack + sizeof( pulStack )),	// ()				The pop address of the STACK
-    ResetISR,              			// Reset Handler
-    NmISR,                			// NMI Handler
-    FaultISR,          				// Hard Fault Handler
-    IntDefaultHandler,          	// MPU Fault Handler
-    IntDefaultHandler,          	// Bus Fault Handler
-    IntDefaultHandler,         		// Usage Fault Handler
-    0,                         		// Reserved
-    0,                          	// Reserved
-    0,                          	// Reserved
-    0,                          	// Reserved
-    IntDefaultHandler,             	// SVCall Handler
-    IntDefaultHandler,           	// Debug Monitor Handler
-    0,                          	// Reserved
-    IntDefaultHandler,             	// PendSV Handler
-    SysTick_Handler,            	// SysTick Handler
-    IntDefaultHandler,             	// Window WatchDog
-    IntDefaultHandler,             	// PVD through EXTI Line detection
-    IntDefaultHandler,             	// Tamper and TimeStamps through the EXTI line
-    IntDefaultHandler,             	// RTC Wakeup through the EXTI line
-    IntDefaultHandler,             	// FLASH
-    IntDefaultHandler,             	// RCC
-    IntDefaultHandler,             	// EXTI Line0
-    IntDefaultHandler,             	// EXTI Line1
-    IntDefaultHandler,             	// EXTI Line2
-    IntDefaultHandler,             	// EXTI Line3
-    IntDefaultHandler,             	// EXTI Line4
-    IntDefaultHandler,           	// DMA1 Stream 0
-    IntDefaultHandler,           	// DMA1 Stream 1
-    IntDefaultHandler,           	// DMA1 Stream 2
-    IntDefaultHandler,           	// DMA1 Stream 3
-    IntDefaultHandler,           	// DMA1 Stream 4
-    IntDefaultHandler,           	// DMA1 Stream 5
-    IntDefaultHandler,           	// DMA1 Stream 6
-    IntDefaultHandler,             	// ADC1, ADC2 and ADC3s
-    IntDefaultHandler,             	// CAN1 TX
-    IntDefaultHandler,             	// CAN1 RX0
-    IntDefaultHandler,             	// CAN1 RX1
-    IntDefaultHandler,             	// CAN1 SCE
-    IntDefaultHandler,             	// External Line[9:5]s
-    IntDefaultHandler,          	// TIM1 Break and TIM9
-    IntDefaultHandler,          	// TIM1 Update and TIM10
-    IntDefaultHandler,     			// TIM1 Trigger and Commutation and TIM11
-    IntDefaultHandler,          	// TIM1 Capture Compare
-    IntDefaultHandler,             	// TIM2
-    IntDefaultHandler,             	// TIM3
-    IntDefaultHandler,             	// TIM4
-    IntDefaultHandler,             	// I2C1 Event
-    IntDefaultHandler,             	// I2C1 Error
-    IntDefaultHandler,             	// I2C2 Event
-    IntDefaultHandler,             	// I2C2 Error
-    IntDefaultHandler,             	// SPI1
-    IntDefaultHandler,             	// SPI2
-    IntDefaultHandler,             	// USART1
-    IntDefaultHandler,             	// USART2
-    IntDefaultHandler,             	// USART3
-    IntDefaultHandler,             	// External Line[15:10]s
-    IntDefaultHandler,             	// RTC Alarm (A and B) through EXTI Line
-    IntDefaultHandler,            	// USB OTG FS Wakeup through EXTI line
-    IntDefaultHandler,         		// TIM8 Break and TIM12
-    IntDefaultHandler,          	// TIM8 Update and TIM13
-    IntDefaultHandler,     			// TIM8 Trigger and Commutation and TIM14
-    IntDefaultHandler,             	// TIM8 Capture Compare
-    IntDefaultHandler,           	// DMA1 Stream7
-    IntDefaultHandler,             	// FSMC
-    IntDefaultHandler,             	// SDIO
-    IntDefaultHandler,             	// TIM5
-    IntDefaultHandler,             	// SPI3
-    IntDefaultHandler,             	// UART4
-    IntDefaultHandler,             	// UART5
-    IntDefaultHandler,             	// TIM6 and DAC1&2 underrun errors
-    IntDefaultHandler,             	// TIM7
-    IntDefaultHandler,           	// DMA2 Stream 0
-    IntDefaultHandler,           	// DMA2 Stream 1
-    IntDefaultHandler,           	// DMA2 Stream 2
-    IntDefaultHandler,           	// DMA2 Stream 3
-    IntDefaultHandler,           	// DMA2 Stream 4
-    IntDefaultHandler,             	// Ethernet
-    IntDefaultHandler,             	// Ethernet Wakeup through EXTI line
-    IntDefaultHandler,             	// CAN2 TX
-    IntDefaultHandler,             	// CAN2 RX0
-    IntDefaultHandler,             	// CAN2 RX1
-    IntDefaultHandler,             	// CAN2 SCE
-    IntDefaultHandler,             	// USB OTG FS
-    IntDefaultHandler,           	// DMA2 Stream 5
-    IntDefaultHandler,           	// DMA2 Stream 6
-    IntDefaultHandler,           	// DMA2 Stream 7
-    IntDefaultHandler,             	// USART6
-    IntDefaultHandler,             	// I2C3 event
-    IntDefaultHandler,             	// I2C3 error
-    IntDefaultHandler,         		// USB OTG HS End Point 1 Out
-    IntDefaultHandler,          	// USB OTG HS End Point 1 In
-    IntDefaultHandler,            	// USB OTG HS Wakeup through EXTI
-    IntDefaultHandler,             	// USB OTG HS
-    IntDefaultHandler,             	// DCMI
-    IntDefaultHandler,             	// CRYP crypto
-    IntDefaultHandler              	// Hash and Rng
+/*----------------------------------------------------------------------------
+* weak aliases for each Exception handler to the Default_Handler.
+* Any function with the same name will override these definitions.
+*/
+/* Cortex-M Processor fault exceptions... */
+void NMI_Handler           (void) __attribute__ ((weak));
+void HardFault_Handler     (void) __attribute__ ((weak));
+void MemManage_Handler     (void) __attribute__ ((weak));
+void BusFault_Handler      (void) __attribute__ ((weak));
+void UsageFault_Handler    (void) __attribute__ ((weak));
+
+/* Cortex-M Processor non-fault exceptions... */
+void SVC_Handler           (void) __attribute__ ((weak, alias("Default_Handler")));
+void DebugMon_Handler      (void) __attribute__ ((weak, alias("Default_Handler")));
+void PendSV_Handler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void SysTick_Handler       (void) __attribute__ ((weak, alias("Default_Handler")));
+
+/* external interrupts...   */
+void WWDG_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void PVD_IRQHandler          (void) __attribute__ ((weak, alias("Default_Handler")));
+void TAMPER_STAMP_IRQHandler (void) __attribute__ ((weak, alias("Default_Handler")));
+void RTC_WKUP_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));
+void FLASH_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void RCC_IRQHandler          (void) __attribute__ ((weak, alias("Default_Handler")));
+void EXTI0_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void EXTI1_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void EXTI2_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void EXTI3_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void EXTI4_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA1_Channel1_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA1_Channel2_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA1_Channel3_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA1_Channel4_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA1_Channel5_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA1_Channel6_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA1_Channel7_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void ADC1_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void USB_HP_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
+void USB_LP_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
+void DAC_IRQHandler          (void) __attribute__ ((weak, alias("Default_Handler")));
+void COMP_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void EXTI9_5_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
+void LCD_IRQHandler          (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM9_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM10_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM11_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM2_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM3_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM4_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void I2C1_EV_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
+void I2C1_ER_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
+void I2C2_EV_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
+void I2C2_ER_IRQHandler      (void) __attribute__ ((weak, alias("Default_Handler")));
+void SPI1_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void SPI2_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void USART1_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
+void USART2_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
+void USART3_IRQHandler       (void) __attribute__ ((weak, alias("Default_Handler")));
+void EXTI15_10_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));
+void RTC_Alarm_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));
+void USB_FS_WKUP_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM6_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM7_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void SDIO_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void TIM5_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void SPI3_IRQHandler         (void) __attribute__ ((weak, alias("Default_Handler")));
+void UART4_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void UART5_IRQHandler        (void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA2_Channel1_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA2_Channel2_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA2_Channel3_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA2_Channel4_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void DMA2_Channel5_IRQHandler(void) __attribute__ ((weak, alias("Default_Handler")));
+void AES_IRQHandler          (void) __attribute__ ((weak, alias("Default_Handler")));
+void COMP_ACQ_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));
+
+
+/*..........................................................................*/
+__attribute__ ((section(".isr_vector")))
+int const g_pfnVectors[] = {
+    (int)&__stack_end__,            /* Top of Stack                   */
+    (int)&Reset_Handler,            /* Reset Handler                  */
+    (int)&NMI_Handler,              /* NMI Handler                    */
+    (int)&HardFault_Handler,        /* Hard Fault Handler             */
+    0,                              /* Reserved                       */
+    0,                              /* Reserved                       */
+    0,                              /* Reserved                       */
+    0,                              /* Reserved                       */
+    0,                              /* Reserved                       */
+    0,                              /* Reserved                       */
+    0,                              /* Reserved                       */
+    (int)&SVC_Handler,              /* SVCall handler                 */
+    (int)&DebugMon_Handler,         /* Debug monitor handler          */
+    0,                              /* Reserved                       */
+    (int)&PendSV_Handler,           /* The PendSV handler             */
+    (int)&SysTick_Handler,          /* The SysTick handler            */
+
+    /* IRQ handlers... */
+    (int)&WWDG_IRQHandler,          /* Window Watchdog                */
+    (int)&PVD_IRQHandler,           /* PVD through EXTI Line detect   */
+    (int)&TAMPER_STAMP_IRQHandler,  /* Tamper and Time Stamp          */
+    (int)&RTC_WKUP_IRQHandler,      /* RTC Wakeup                     */
+    (int)&FLASH_IRQHandler,         /* FLASH                          */
+    (int)&RCC_IRQHandler,           /* RCC                            */
+    (int)&EXTI0_IRQHandler,         /* EXTI Line 0                    */
+    (int)&EXTI1_IRQHandler,         /* EXTI Line 1                    */
+    (int)&EXTI2_IRQHandler,         /* EXTI Line 2                    */
+    (int)&EXTI3_IRQHandler,         /* EXTI Line 3                    */
+    (int)&EXTI4_IRQHandler,         /* EXTI Line 4                    */
+    (int)&DMA1_Channel1_IRQHandler, /* DMA1 Channel 1                 */
+    (int)&DMA1_Channel2_IRQHandler, /* DMA1 Channel 2                 */
+    (int)&DMA1_Channel3_IRQHandler, /* DMA1 Channel 3                 */
+    (int)&DMA1_Channel4_IRQHandler, /* DMA1 Channel 4                 */
+    (int)&DMA1_Channel5_IRQHandler, /* DMA1 Channel 5                 */
+    (int)&DMA1_Channel6_IRQHandler, /* DMA1 Channel 6                 */
+    (int)&DMA1_Channel7_IRQHandler, /* DMA1 Channel 7                 */
+    (int)&ADC1_IRQHandler,          /* ADC1                           */
+    (int)&USB_HP_IRQHandler,        /* USB High Priority              */
+    (int)&USB_LP_IRQHandler,        /* USB Low  Priority              */
+    (int)&DAC_IRQHandler,           /* DAC                            */
+    (int)&COMP_IRQHandler,          /* COMP through EXTI Line         */
+    (int)&EXTI9_5_IRQHandler,       /* EXTI Line 9..5                 */
+    (int)&LCD_IRQHandler,           /* LCD                            */
+    (int)&TIM9_IRQHandler,          /* TIM9                           */
+    (int)&TIM10_IRQHandler,         /* TIM10                          */
+    (int)&TIM11_IRQHandler,         /* TIM11                          */
+    (int)&TIM2_IRQHandler,          /* TIM2                           */
+    (int)&TIM3_IRQHandler,          /* TIM3                           */
+    (int)&TIM4_IRQHandler,          /* TIM4                           */
+    (int)&I2C1_EV_IRQHandler,       /* I2C1 Event                     */
+    (int)&I2C1_ER_IRQHandler,       /* I2C1 Error                     */
+    (int)&I2C2_EV_IRQHandler,       /* I2C2 Event                     */
+    (int)&I2C2_ER_IRQHandler,       /* I2C2 Error                     */
+    (int)&SPI1_IRQHandler,          /* SPI1                           */
+    (int)&SPI2_IRQHandler,          /* SPI2                           */
+    (int)&USART1_IRQHandler,        /* USART1                         */
+    (int)&USART2_IRQHandler,        /* USART2                         */
+    (int)&USART3_IRQHandler,        /* USART3                         */
+    (int)&EXTI15_10_IRQHandler,     /* EXTI Line 15..10               */
+    (int)&RTC_Alarm_IRQHandler,     /* RTC Alarm through EXTI Line    */
+    (int)&USB_FS_WKUP_IRQHandler,   /* USB FS Wakeup from suspend     */
+    (int)&TIM6_IRQHandler,          /* TIM6                           */
+    (int)&TIM7_IRQHandler,          /* TIM7                           */
+    (int)&SDIO_IRQHandler,          /* SDIO                           */
+    (int)&TIM5_IRQHandler,          /* TIM5                           */
+    (int)&SPI3_IRQHandler,          /* SPI3                           */
+    (int)&UART4_IRQHandler,         /* UART4                          */
+    (int)&UART5_IRQHandler,         /* UART5                          */
+    (int)&DMA2_Channel1_IRQHandler, /* DMA2 Channel 1                 */
+    (int)&DMA2_Channel2_IRQHandler, /* DMA2 Channel 2                 */
+    (int)&DMA2_Channel3_IRQHandler, /* DMA2 Channel 3                 */
+    (int)&DMA2_Channel4_IRQHandler, /* DMA2 Channel 4                 */
+    (int)&DMA2_Channel5_IRQHandler, /* DMA2 Channel 5                 */
+    (int)&AES_IRQHandler,           /* AES                            */
+    (int)&COMP_ACQ_IRQHandler,      /* Comparator Channel Acquisition */
 };
-//***************************************************************************
-// The following are constructs created by the linker, indicating where the
-// the "data" and "bss" segments reside in memory.  The initializers for the
-// ".data" segment resides immediately following the ".text" segment.
-//***************************************************************************
-extern unsigned int _etext;
-extern unsigned int _sdata;
-extern unsigned int _edata;
-extern unsigned int _sbss;
-extern unsigned int _ebss;
 
-//***************************************************************************
-// This is the code that gets called when the processor first starts execution
-// following a reset event.  Only the absolutely necessary set is performed,
-// after which the application supplied main() routine is called.  Any fancy
-// actions (such as making decisions based on the reset cause register, and
-// resetting the bits in that register) are left solely in the hands of the
-// application.
-//*****************************************************************************
-static void ResetISR( void ) {
-    unsigned int *pulSrc, *pulDest;
 
-    //
-    // Copy the data segment initializers from flash to SRAM.
-    //
-    pulSrc = &_etext;
-    for(pulDest = &_sdata; pulDest < &_edata; )
-    {
-        *pulDest++ = *pulSrc++;
+/* reset handler -----------------------------------------------------------*/
+__attribute__((naked)) void Reset_Handler(void);
+void Reset_Handler(void) {
+    extern int main(void);
+    extern int __libc_init_array(void);
+    extern unsigned __data_start;  /* start of .data in the linker script */
+    extern unsigned __data_end__;  /* end of .data in the linker script */
+    extern unsigned const __data_load; /* initialization values for .data  */
+    extern unsigned __bss_start__; /* start of .bss in the linker script */
+    extern unsigned __bss_end__;   /* end of .bss in the linker script */
+    extern void software_init_hook(void) __attribute__((weak));
+
+    unsigned const *src;
+    unsigned *dst;
+
+    SystemInit(); /* CMSIS system initialization */
+
+    /* copy the data segment initializers from flash to RAM... */
+    src = &__data_load;
+    for (dst = &__data_start; dst < &__data_end__; ++dst, ++src) {
+        *dst = *src;
     }
 
-    //
-    // Zero fill the bss segment.
-    //
-    for(pulDest = &_sbss; pulDest < &_ebss; )
-    {
-        *pulDest++ = 0;
+    /* zero fill the .bss segment in RAM... */
+    for (dst = &__bss_start__; dst < &__bss_end__; ++dst) {
+        *dst = 0;
     }
 
-    //
-    // Call the application's entry point.
-    //
-    main();
+    /* init hook provided? */
+    if (&software_init_hook != (void (*)(void))(0)) {
+        /* give control to the RTOS */
+        software_init_hook(); /* this will also call __libc_init_array */
+    }
+    else {
+        /* call all static constructors in C++ (harmless in C programs) */
+        __libc_init_array();
+        (void)main(); /* application's entry point; should never return! */
+    }
+
+    /* the previous code should not return, but assert just in case... */
+    assert_failed("Reset_Handler", __LINE__);
 }
 
-//***************************************************************************
-// This is the code that gets called when the processor receives a NMI.  This
-// simply enters an infinite loop, preserving the system state for examination
-// by a debugger.
-//***************************************************************************
-static void NmISR( void ) {
-    while( 1 );
+
+/* fault exception handlers ------------------------------------------------*/
+__attribute__((naked)) void NMI_Handler(void);
+void NMI_Handler(void) {
+    __asm volatile (
+        "    ldr r0,=str_nmi\n\t"
+        "    mov r1,#1\n\t"
+        "    b assert_failed\n\t"
+        "str_nmi: .asciz \"NMI\"\n\t"
+    );
+}
+/*..........................................................................*/
+__attribute__((naked)) void MemManage_Handler(void);
+void MemManage_Handler(void) {
+    __asm volatile (
+        "    ldr r0,=str_mem\n\t"
+        "    mov r1,#1\n\t"
+        "    b assert_failed\n\t"
+        "str_mem: .asciz \"MemManage\"\n\t"
+    );
+}
+/*..........................................................................*/
+__attribute__((naked)) void HardFault_Handler(void);
+void HardFault_Handler(void) {
+    __asm volatile (
+        "    ldr r0,=str_hrd\n\t"
+        "    mov r1,#1\n\t"
+        "    b assert_failed\n\t"
+        "str_hrd: .asciz \"HardFault\"\n\t"
+    );
+}
+/*..........................................................................*/
+__attribute__((naked)) void BusFault_Handler(void);
+void BusFault_Handler(void) {
+    __asm volatile (
+        "    ldr r0,=str_bus\n\t"
+        "    mov r1,#1\n\t"
+        "    b assert_failed\n\t"
+        "str_bus: .asciz \"BusFault\"\n\t"
+    );
+}
+/*..........................................................................*/
+__attribute__((naked)) void UsageFault_Handler(void);
+void UsageFault_Handler(void) {
+    __asm volatile (
+        "    ldr r0,=str_usage\n\t"
+        "    mov r1,#1\n\t"
+        "    b assert_failed\n\t"
+        "str_usage: .asciz \"UsageFault\"\n\t"
+    );
+}
+/*..........................................................................*/
+__attribute__((naked)) void Default_Handler(void);
+void Default_Handler(void) {
+    __asm volatile (
+        "    ldr r0,=str_dflt\n\t"
+        "    mov r1,#1\n\t"
+        "    b assert_failed\n\t"
+        "str_dflt: .asciz \"Default\"\n\t"
+    );
+}
+/*..........................................................................*/
+void _init(void) { /* dummy */
+}
+/*..........................................................................*/
+void _fini(void) { /* dummy */
 }
 
-//***************************************************************************
-// This is the code that gets called when the processor receives a fault
-// interrupt.  This simply enters an infinite loop, preserving the system state
-// for examination by a debugger.
-//***************************************************************************
-static void FaultISR( void ) {
-    while( 1 );
+
+/*****************************************************************************
+* The function assert_failed defines the error/assertion handling policy
+* for the application and might need to be customized for each project.
+* This function is defined as "naked" and specifically avoids accessing the
+* stack, which might be corrupted by the time assert_failed is called.
+*
+* NOTE: the functions assert_failed/Q_onAssert should NOT return.
+*****************************************************************************/
+__attribute__ ((naked))
+void assert_failed(char const *file, int line) {
+
+    /* NOTE: add here your application-specific error handling... */
+
+    /* the following assembly implements the CMIS function
+    * NVIC_SystemReset() from core_cm4.h
+    * Leave this code if you wish to reset the system after an error.
+    */
+    __asm volatile (
+        "  DSB\n\t"                /* ensure all memory access complete */
+        "  LDR r0,=0x05FA0004\n\t" /* (0x5FA << SCB_AIRCR_VECTKEY_Pos)
+                                   * | (SCB->AIRCR & SCB_AIRCR_PRIGROUP_Msk)
+                                   * | SCB_AIRCR_SYSRESETREQ_Msk */
+        "  LDR r1,=0xE000ED0C\n\t" /* address of SCB->AIRCR */
+        "  STR r0,[r1]\n\t"        /* r0 -> SCB->AIRCR */
+        "  DSB\n\t"                /* ensure all memory access complete */
+        "  B   .\n\t"              /* wait until reset occurs */
+    );
 }
 
-//***************************************************************************
-// This is the code that gets called when the processor receives an unexpected
-// interrupt.  This simply enters an infinite loop, preserving the system state
-// for examination by a debugger.
-//***************************************************************************
-static void IntDefaultHandler( void ) {
-    while( 1 );
-}
-
-//***************************************************************************
-//	End of startup code for STM32F103x ARM Cortex-M3 microprocessor
-//***************************************************************************
+/****** End Of File *********************************************************/
