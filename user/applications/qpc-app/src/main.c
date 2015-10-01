@@ -34,9 +34,10 @@
 #include "qpc.h"
 #include "dpp.h"
 #include "bsp.h"
+#include "main.h"
 
 /*..........................................................................*/
-int main() {
+int Program_Main() {
     static QEvt const *tableQueueSto[N_PHILO];
     static QEvt const *philoQueueSto[N_PHILO][N_PHILO];
     static QSubscrList subscrSto[MAX_PUB_SIG];
@@ -84,4 +85,3 @@ int main() {
 
     return QF_run(); /* run the QF application */
 }
-

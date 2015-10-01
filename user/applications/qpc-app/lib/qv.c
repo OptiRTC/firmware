@@ -41,6 +41,7 @@
 #define QP_IMPL           /* this is QP implementation */
 #include "qf_port.h"      /* QF port */
 #include "qassert.h"      /* QP embedded systems-friendly assertions */
+#include "qequeue.h"      /* For QEQueue_init */
 #ifdef Q_SPY              /* QS software tracing enabled? */
     #include "qs_port.h"  /* include QS port */
 #else
