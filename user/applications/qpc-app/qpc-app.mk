@@ -1,7 +1,7 @@
 
-#CSRC += $(call target_files,.,*.c)
-#CPPSRC += $(call target_files,.,*.cpp)
+CSRC += $(call target_files,$(USRSRC_SLASH),*.c)
+CPPSRC += $(call target_files,$(USRSRC_SLASH),*.cpp)
 
-INCLUDE_DIRS += applications/qpc-app/include \
-		applications/qpc-app/lib/port/qv/gnu
+INCLUDE_DIRS += $(USRSRC_SLASH)include \
+		$(USRSRC_SLASH)lib/port/qv/gnu
 
