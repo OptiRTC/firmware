@@ -15,7 +15,7 @@ AR = $(GCC_ARM_PATH)$(GCC_PREFIX)gcc-ar
 #
 ifeq ("$(ARM_CPU)","cortex-m3")
 # C compiler flags
-CFLAGS +=  -g3 -gdwarf-2 -Os -mcpu=cortex-m3 -mthumb
+CFLAGS +=  -g3 -gdwarf-2 -Os -mcpu=cortex-m3 -mthumb --specs=nosys.specs
 
 # C++ specific flags
 CPPFLAGS += -fno-exceptions -fno-rtti -fcheck-new
